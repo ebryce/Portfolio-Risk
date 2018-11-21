@@ -1,4 +1,4 @@
-Portfolio-Risk
+Rebal Costs
 ==============
 
-Python application to optimize risk allocation in an arbitrary financial portfolio.
+The Jupyter notebook should be self-explanatory.
