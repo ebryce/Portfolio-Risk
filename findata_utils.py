@@ -1,5 +1,6 @@
 import pandas as pd
 import requests
+import boto3
 
 # To get data from Economagic
 from bs4 import BeautifulSoup
@@ -8,6 +9,9 @@ from bs4 import BeautifulSoup
 import zipfile
 from zipfile import ZipFile
 import io
+
+def sync_to_db(df, db='C:\\Datasets\\thesis.db'):
+    return None
     
 def get_damodaram(key):
     # Programatically download Damodaran's data
@@ -67,3 +71,61 @@ def get_french(key):
     df.drop('index', axis=1, inplace=True)
 
     return df
+
+def list_files(bucket='workspace-grapevine-andreas', subdir=None):
+    s3 = boto3.client('s3')
+    objects = s3.list_objects(Bucket=bucket)
+    files = [file['Key'] for file in objects['Contents']]
+    
+    if type(subdir)==type(None):
+        return files
+    else:
+        files_filtered = []
+        for file in files:
+            if file[:len(subdir)]==subdir:
+                files_filtered.append(file) 
+        return files_filtered
+
+def from_grapevine(filename, bucket='workspace-grapevine-andreas', hdf_key=None):
+    # Reads a dataframe from S3
+    s3 = boto3.client('s3')
+    obj = s3.get_object(Bucket=bucket, Key=filename)
+    body = io.BytesIO(obj['Body'].read())
+    
+    ext = filename[filename.rfind('.')+1:]
+    
+    if ext =='csv':
+        df = pd.read_csv(body)
+    elif ext=='h5':
+        df = pd.read_hdf(body, key=hdf_key)
+    elif ext=='pkl':
+        df = pd.read_pickle(body) 
+    else:
+        raise ValueError('Invalid extension {ext}'.format(ext=ext))
+        
+    return df
+
+def to_grapevine(df, filename, bucket='workspace-grapevine-andreas', hdf_key='Default',print_index=False):
+    # Writes a dataframe to Grapevine
+    ext = filename[filename.rfind('.')+1:]
+    if ext=='pkl':
+        buf = io.BytesIO()
+    else:
+        buf = io.StringIO()
+    
+    if ext =='csv':
+        df = df.to_csv(buf,index=print_index)
+    elif ext=='h5':
+        df = df.to_hdf(buf, key=hdf_key)
+    elif ext=='pkl':
+        df = df.to_pickle(buf)
+    else:
+        raise ValueError('Invalid extension {ext}'.format(ext=ext))
+        
+    s3_resource = boto3.resource('s3')
+    resp = s3_resource.Object(bucket, filename).put(Body=buf.getvalue())
+
+    if resp['ResponseMetadata']['HTTPStatusCode']!=200:
+        raise ValueError(resp)
+
+#df = from_grapevine(filename='user/files/test2.csv')
