@@ -6,7 +6,7 @@ import sys
 
 print('Setting up variables')
 db = 'C:\\Datasets\\thesis.db'
-file = 'C:\Datasets\cfmrc_annual.txt'
+file = 'C:\\Datasets\\cfmrc_annual.txt'
 
 n_before_query = 7500
 n_before_commit = 25000

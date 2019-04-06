@@ -1,0 +1,10 @@
+-----
+2019-04-05 21:40:03
+  ERROR: Ignoring useless industry: -
+  industry/-
+
+-----
+2019-04-05 21:40:23
+  ERROR: Too little market data; skipping
+  industry/Health Care Distributors
+
