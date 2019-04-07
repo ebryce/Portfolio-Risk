@@ -8,3 +8,69 @@
   ERROR: Too little market data; skipping
   industry/Health Care Distributors
 
+-----
+2019-04-06 12:53:15
+  ERROR: Ignoring useless sector: -
+.\sector-coherence.py, --refresh
+  sector/-
+
+-----
+2019-04-06 12:57:24
+  ERROR: Ignoring useless sector: -
+  .\sector-coherence.py, --refresh
+  sector/-
+
+-----
+2019-04-06 13:07:12
+  ERROR: Ignoring useless sector: -
+  .\sector-coherence.py, --refresh
+  sector/-
+
+-----
+2019-04-06 13:10:15
+  ERROR: Ignoring useless industry: -
+  .\sector-coherence.py, --refresh
+  industry/-
+
+-----
+2019-04-06 13:10:36
+  ERROR: Too little market data; skipping
+  .\sector-coherence.py, --refresh
+  industry/Health Care Distributors
+
+-----
+2019-04-06 13:21:49
+  ERROR: Ignoring useless sector: -
+  .\sector-coherence.py, --refresh
+  sector/-
+
+-----
+2019-04-06 13:24:43
+  ERROR: Ignoring useless industry: -
+  .\sector-coherence.py, --refresh
+  industry/-
+
+-----
+2019-04-06 13:25:03
+  ERROR: Too little market data; skipping
+  .\sector-coherence.py, --refresh
+  industry/Health Care Distributors
+
+-----
+2019-04-06 13:52:51
+  ERROR: Ignoring useless industry: -
+  .\sector-coherence.py, --refresh
+  industry/-
+
+-----
+2019-04-06 13:53:11
+  ERROR: Too little market data; skipping
+  .\sector-coherence.py, --refresh
+  industry/Health Care Distributors
+
+-----
+2019-04-06 13:54:48
+  ERROR: Ignoring useless sector: -
+  .\sector-coherence.py, --refresh
+  sector/-
+
