@@ -296,6 +296,13 @@ if REFRESH:
 		i+=1
 	regressions = pd.concat(regressions).reset_index()
 	regressions.columns = ['ticker','riskfree_return','market_excess_return','sector_excess_return','industry_excess_return','residual','pre_event','action']
+
+	bounds = [-5,5]
+	bounds_rf = [-1,1]
+	for column in ['market_excess_return','sector_excess_return','industry_excess_return']:
+		regressions[column].clip(upper=max(bounds), lower=min(bounds))
+	regressions['riskfree_return'] = regressions['riskfree_return'].clip(upper=max(bounds_rf), lower=min(bounds_rf))
+
 	regressions.to_sql('factor_coefficients', conn, if_exists='replace', index=False)
 else:
 	print('Skipping calculation of correlation coefficients')
@@ -309,8 +316,14 @@ if REFRESH:
 
 	df = df.merge(regressions, on=['ticker','pre_event','action'], suffixes=('','_corr'), how='inner')
 
+	bounds = [-1,10]
+	
 	df['er_daily'] = df['riskfree_return']*df['riskfree_return_corr'] + df['market_excess_return']*df['market_excess_return_corr'] + df['sector_excess_return']*df['sector_excess_return_corr'] + df['industry_excess_return']*df['industry_excess_return_corr']
-	df['ar_daily'] = df['r_daily'].replace([-np.inf,np.inf], np.nan) - df['er_daily']
+	
+	df['er_daily'] = df['er_daily'].clip(upper=max(bounds), lower=min(bounds))
+	df['r_daily'] = df['r_daily'].clip(upper=max(bounds), lower=min(bounds))
+	
+	df['ar_daily'] = df['r_daily'] - df['er_daily']
 
 	df.to_sql('daily_abnormal_returns', conn, if_exists='replace', index=False)
 
