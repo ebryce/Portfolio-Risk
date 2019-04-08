@@ -2,7 +2,7 @@
 print('Loading dataframes')
 sector = hdf.get(key='sector_returns')[[('sector',''),('r_overnight','mean'),('r_intraday','mean'),('vol','count')]]
 #sector.columns = ['_'.join(column) for column in sector.columns[:-1]].extend(''.join([sector.columns[-1]]))
-sector.to_sql('sector_returns', conn, if_exists='replace', index=False)
+sector_returns.to_sql('sector_returns', conn, if_exists='replace', index=False)
 print(sector.head())
 industry = hdf.get(key='industry_returns')[[('industry',''),('r_overnight','mean'),('r_intraday','mean'),('vol','count')]]
 #industry.columns = ['_'.join(column) for column in industry.columns[:-1]].extend(''.join([industry.columns[-1]]))

@@ -16,7 +16,8 @@ changes = pd.read_sql('''
     FROM factset_index_changes
     WHERE [index] IN ('{Index}')
         AND exchange=('{Exchange}')
-    --LIMIT 100'''.format(Index=study_index, Exchange=exchange), conn)
+    --LIMIT 100
+    '''.format(Index=study_index, Exchange=exchange), conn)
 print(changes.head())
 print()
 
@@ -26,7 +27,8 @@ holdings = pd.read_sql('''
     FROM index_holdings_2019
     WHERE [index] IN ('{Index}')
         AND exchange=('{Exchange}')
-    --LIMIT 100'''.format(Index=study_index, Exchange=exchange), conn)
+    --LIMIT 100
+    '''.format(Index=study_index, Exchange=exchange), conn)
 print(holdings.head())
 print()
 
@@ -76,5 +78,10 @@ mkt_cap = pd.DataFrame(mkt_cap).reset_index()
 mkt_cap.columns = ['date','SPTSXComp']
 
 mkt_cap.to_sql('index_mkt_cap', conn, if_exists='replace', index=False)
+index = index.dropna().reset_index()
+cols = ['date']
+cols.extend(list(index.columns[1:]))
+index.columns = cols
+index.to_sql('in_the_comp', conn, if_exists='replace', index=False)
 
 print(mkt_cap)
