@@ -15,8 +15,8 @@ import itertools
 import pickle, sqlite3, simpledbf, boto3
 
 # Custom financial data libraries
-import findata_utils as fd
-import ml_utils
+import utils.findata_utils as fd
+import utils.ml_utils as ml_utils
 
 # Plotting libraries
 import matplotlib.pyplot as plt
@@ -55,7 +55,7 @@ from yellowbrick.regressor import ResidualsPlot, PredictionError
 
 # Connect to databases
 db = 'C:\\Datasets\\thesis.db'
-overleaf = ['C:','Users','bryce','OneDrive','Documents','Overleaf','5babbfe264c952737a9a5117','esc499']
+overleaf = ['C:','Users','bryce','OneDrive','Documents','Overleaf','Thesis','assets','exports']
 conn = sqlite3.connect(db)
 c = conn.cursor()
 
@@ -64,7 +64,7 @@ hdf = pd.HDFStore(hdf_path)
 
 import warnings
 if not sys.warnoptions:
-    warnings.simplefilter("ignore")
+	warnings.simplefilter("ignore")
 
 index_mkt_cap = pd.read_sql('''SELECT * FROM index_mkt_cap_bbgmethod''', conn)
 index_mkt_cap.columns = ['date','price','pct_day0','SPTSXComp']
@@ -87,30 +87,30 @@ print(avg_mkt_caps.head())
 # MARGINAL SECURITIES ONLY
 
 index_changes = pd.read_sql('''
-    SELECT date, action, ticker,
-        SUBSTR(date,0,8) AS month
-    FROM factset_index_changes
-    WHERE [index] IN ('{StudyIndex}')
-    '''.format(StudyIndex='S&P/TSX Composite Index'), conn)
+	SELECT date, action, ticker,
+		SUBSTR(date,0,8) AS month
+	FROM factset_index_changes
+	WHERE [index] IN ('{StudyIndex}')
+	'''.format(StudyIndex='S&P/TSX Composite Index'), conn)
 
 index_changes['ranking_month'] = index_changes['month'].apply(lambda month: (datetime.strptime(month, '%Y-%m')-timedelta(days=28)).strftime('%Y-%m'))
 #tickers = index_changes['ticker'].unique()
 
 px_cfmrc = pd.read_sql('''
-    SELECT c.date, c.ticker, c.c, c.vol--, s.shares_out, c.c*s.shares_out AS mkt_cap
-    FROM cfmrc c
-    --WHERE mkt_cap>{MinMktCap}*0.75
-        --AND c.ticker IN ('{Tickers}')
-    '''.format(Tickers='', MinMktCap='')
-    , conn)
+	SELECT c.date, c.ticker, c.c, c.vol--, s.shares_out, c.c*s.shares_out AS mkt_cap
+	FROM cfmrc c
+	--WHERE mkt_cap>{MinMktCap}*0.75
+		--AND c.ticker IN ('{Tickers}')
+	'''.format(Tickers='', MinMktCap='')
+	, conn)
 
 so = pd.read_sql('''
-    SELECT so.ticker, so.shares_out, so.float
-    FROM shares_out so
-    --WHERE mkt_cap>{MinMktCap}*0.75
-    --WHERE c.ticker IN ('{Tickers}')
-    '''.format(Tickers='', MinMktCap=''),
-                 conn)
+	SELECT so.ticker, so.shares_out, so.float
+	FROM shares_out so
+	--WHERE mkt_cap>{MinMktCap}*0.75
+	--WHERE c.ticker IN ('{Tickers}')
+	'''.format(Tickers='', MinMktCap=''),
+				 conn)
 
 print(index_changes.head())
 print(px_cfmrc.head())
@@ -119,16 +119,16 @@ print(so.head())
 # TICKER CHANGES
 
 ticker_changes = pd.read_sql('''
-    SELECT * FROM ticker_changes
-    WHERE date>'{cfmrc_date}'
-    '''.format(cfmrc_date=px_cfmrc.date.max())
-    , conn)[['from','to']]
+	SELECT * FROM ticker_changes
+	WHERE date>'{cfmrc_date}'
+	'''.format(cfmrc_date=px_cfmrc.date.max())
+	, conn)[['from','to']]
 
 #print(ticker_changes.head())
 
 for i, change in ticker_changes.iterrows():
-    px_cfmrc['ticker'].replace(change['from'],change['to'], inplace=True)
-    
+	px_cfmrc['ticker'].replace(change['from'],change['to'], inplace=True)
+	
 #print(px_cfmrc.head())
 
 px = px_cfmrc.merge(so, on=['ticker'], how='inner')
@@ -181,13 +181,13 @@ print(grouped.head())
 
 # Merge to list of changes
 grouped = grouped.merge(index_changes, left_on=['month','ticker'],
-                      right_on=['ranking_month','ticker'],
-                      how='outer', suffixes=('','_chg'))
+					  right_on=['ranking_month','ticker'],
+					  how='outer', suffixes=('','_chg'))
 
 # Merge to list of indexed securities
 grouped = grouped.merge(indexed, left_on=['ticker','month'],
-                     right_on=['ticker','month'],
-                     how='outer', suffixes=('','_idx'))
+					 right_on=['ticker','month'],
+					 how='outer', suffixes=('','_idx'))
 
 grouped = grouped.merge(avg_mkt_caps, on=['month'], how='left')
 
@@ -240,34 +240,60 @@ print(log_clf.score(X_train, y_train))
 
 y_pred = log_clf.predict(X_test)
 y_pred_prob = log_clf.predict_proba(X_test)
-ml_utils.clf_model_eval(y_test, y_pred)
+ml_utils.clf_model_eval(y_test, y_pred, classes=['n/c','Add'])
 plt.show()
+plt.close()
 
 from mpl_toolkits.mplot3d import Axes3D
-fig = plt.figure()
+fig = plt.figure(figsize=(5,5))
+
 if len(X_cols)>1:
-    ax = fig.add_subplot(111, projection='3d')
-    ax.scatter(X.values[:,0],X.values[:,1],y.values)
-    ax.set_zlabel(y_col)
+	ax = fig.add_subplot(111, projection='3d')
+	ax.scatter(X.values[:,0],X.values[:,1],y.values)
+	ax.set_zlabel(y_col)
 else:
-    ax = fig.add_subplot(111)
-    ax.scatter(X.values, y.values)
-    ax.set_xlabel(X_cols[0])
-    ax.set_ylabel(y_col)
+	ax = fig.add_subplot(111)
+
+	ax.spines['left'].set_visible(True)
+	ax.spines['top'].set_visible(False)
+	ax.spines['right'].set_visible(False)
+	ax.spines['bottom'].set_visible(True)
+	ax.grid(True,axis='both',linestyle=':')
+
+	ax.scatter(X.values, y.values)
+	ax.set_xlabel(X_cols[0])
+	ax.set_ylabel(y_col)
 plt.show()
+fig.savefig('\\'.join(overleaf+['confusion_matrix.png']))
+plt.close()
 
 #from sklearn.metrics import roc_curve, auc
 import sklearn.metrics as metrics
 
 fpr, tpr, threshold = metrics.roc_curve(y_test, y_pred_prob[:,1])
 roc_auc = metrics.auc(fpr, tpr)
-    
-plt.plot(fpr, tpr, label='ROC curve (A=%0.2f)' % roc_auc)
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC Curve')
-plt.legend()
+
+# Plot the ROC curve
+fig = plt.figure(figsize=(5,5))
+fig.patch.set_facecolor('white')
+ax = fig.add_subplot(1, 1, 1)
+ax.spines['left'].set_visible(True)
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['bottom'].set_visible(True)
+ax.grid(True,axis='both',linestyle=':')
+
+ax.plot(fpr, tpr, label='ROC (A=%0.2f)' % roc_auc)
+plt.legend(frameon=False, loc='best')
+
+plt.title('ROC Curve for the Signal Generator')
+plt.ylabel('False Positive Rate')
+plt.xlabel('False Negative Rate')
+plt.xlim(0,1)
+plt.ylim(0,1)
 plt.show()
+fig.savefig('\\'.join(overleaf+['roc_curve.png']))
+plt.close()
 
 # CONSTRUCT A PORTFOLIO
 

@@ -15,6 +15,8 @@ def clf_model_eval(y_true, y_pred, classes=[0,1], cmap=plt.cm.Blues):
     
     cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
     
+    fig = plt.figure(figsize=(5,5))
+    fig.patch.set_facecolor('white')
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
     plt.title("Confusion Matrix")
     plt.colorbar()
@@ -29,6 +31,6 @@ def clf_model_eval(y_true, y_pred, classes=[0,1], cmap=plt.cm.Blues):
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
 
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
+    plt.ylabel('True')
+    plt.xlabel('Predicted')
     plt.tight_layout()
