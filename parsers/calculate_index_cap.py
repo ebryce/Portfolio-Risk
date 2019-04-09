@@ -7,6 +7,7 @@ db = 'C:\\Datasets\\thesis.db'
 conn = sqlite3.connect(db)
 c = conn.cursor()
 
+DEBUG = False
 study_index = 'S&P/TSX Composite Index'
 exchange = 'TSX'
 

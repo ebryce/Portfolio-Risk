@@ -33,7 +33,7 @@ t1['exchange'] = t1['Company Name(s)'].apply(lambda name:
 # Drop useless columns
 t1 = t1[['date','exchange','from','to']]
 
-t1 = t1.loc[t1['exchange'].isin(['TSX'])]
+t1 = t1.loc[t1['exchange'].isin(['TSX'])].drop_duplicates()
 
 print(t1)
 

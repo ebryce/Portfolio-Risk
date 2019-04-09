@@ -53,7 +53,7 @@ print(index_value_day0)
 index_values['index'] = index_values['Last Price']/index_value_day0
 index_values['mkt_cap'] = index_values['index'] * mkt_cap_day0
 
-index_values.columns = ['date','price','indexed','mkt_cap']
+index_values.columns = ['date','price','pct_day0','mkt_cap']
 
 print(index_values)
 
