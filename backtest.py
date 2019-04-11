@@ -66,6 +66,10 @@ import warnings
 if not sys.warnoptions:
 	warnings.simplefilter("ignore")
 
+holding_period = 30
+look_back = 30
+short = True
+
 signals = pd.read_sql('''
 	SELECT * FROM signals
 	''',
@@ -81,16 +85,17 @@ returns = pd.read_sql('''
 
 returns['datetime'] = returns['date'].apply(lambda date: datetime.strptime(date, '%Y-%m-%d'))
 
-holding_period = 30
-look_back = 30
 
 port_return = []
 skipped_signals = []
 
+
+action = 'Sell' if short else 'Buy'
+
 try:
 	for i, signal in signals.iterrows():
 		
-		print('Buy %s (p=%f)' % (signal['ticker'], signal['probability']))
+		print('%s %s (p=%f)' % (action, signal['ticker'], signal['probability']))
 		
 		look_back_to = signal['trade_date']-timedelta(days=look_back)
 		
@@ -129,7 +134,7 @@ try:
 		try:
 			return_index = ss_return.loc[ss_return['datetime']==open_position_on].iloc[0]
 		except:
-			if str(open_position_on)[:10] < returns.loc[(returns['ticker']=='AEM')]['date'].min():
+			if str(open_position_on)[:10] < returns.loc[(returns['ticker']==ticker)]['date'].min():
 				signal['reason'] = 'No market history to this date'
 				print(' > Do not have market history to this date; skipping')
 				skipped_signals.append(pd.DataFrame(signal).T)
@@ -144,6 +149,10 @@ try:
 		for field in ['culm_return','car']:
 			ss_return[field] = ss_return[field] - return_index[field]
 			
+		for field in ['culm_return','car']:
+			ss_return[field] = ss_return[field]*-1 if short else ss_return[field]
+			ss_return[field]=(ss_return[field]+1)*10000
+
 		ss_return = ss_return[['ticker','date','d','culm_return', 'car']]
 
 		ss_return['d'] = ss_return['d'].apply(lambda d: d.days)
@@ -158,10 +167,13 @@ except Exception as e:
 	print()
 
 port_return = pd.concat(port_return)
-skipped_signals = pd.concat(skipped_signals)
+try:
+	skipped_signals = pd.concat(skipped_signals)
+	print('Skipped signals:')
+	print(skipped_signals)
+except:
+	pass
 
-print('Skipped signals:')
-print(skipped_signals)
 
 #probabilities = port_return['probability']
 pivot = port_return.pivot_table(index=['d'], columns=['trade'], values=['culm_return','car','probability'], aggfunc=np.mean)
@@ -174,10 +186,17 @@ for trade in pivot.columns.get_level_values(1):
 
 for metric in ['culm_return','car']:
 	pivot[metric,'portfolio'] = (pivot[metric]*pivot['weight']).sum(axis=1)
+	pivot[metric,'portfolio_std'] = pivot[metric].std(axis=1)
 print(pivot)
 
 
 # Plot the results
+font = {'family' : 'Arial',
+        'weight' : 'normal',
+        'size'   : 12}
+
+plt.rc('font', **font)
+
 fig = plt.figure(figsize=(10,5))
 fig.patch.set_facecolor('white')
 
@@ -189,16 +208,42 @@ ax.spines['right'].set_visible(False)
 ax.spines['bottom'].set_visible(True)
 ax.grid(True,axis='both',linestyle=':')
 
-colors = {'car':'xkcd:forest green',
-	'culm:return':'xkcd_pale orange'}
+colors = {'car':'navy',
+	'culm_return':'darkgreen'}
+
+nice_names = {'car':'Cumulative Abnormal Return',
+	'culm_return':'Cumulative Return'}
 
 for metric in ['culm_return','car']:
-	ax.plot(pivot.index, pivot[metric,'portfolio'], label=metric, color=colors[metric])
-plt.legend(frameon=False, loc='best')
+	ax.plot(pivot.index, pivot[metric,'portfolio'], label=nice_names[metric], color=colors[metric])
+	ax.fill_between(pivot.index, 
+		pivot[metric,'portfolio']-pivot[metric,'portfolio_std'], 
+		pivot[metric,'portfolio']+pivot[metric,'portfolio_std'], 
+		color=colors[metric], 
+		alpha=0.1)
+
+ax.fill_between([4000,14000], [1,1], color='grey', alpha=0.1)
+ax.fill_between([4000,14000], [-1,-1], color='grey', alpha=0.1)
+
+#ax.xticks(np.linspace(-30,30, ))
+
+plt.legend(frameon=False, loc='lower right')
 
 plt.title('Portfolio Returns')
-plt.ylabel('Culmulative Returns\\Indexed to Day-0')
-plt.xlabel('Days Since (To) End of the Ranking Month')
+plt.ylabel('Culmulative Returns\n(indexed to day-0)')
+plt.xlabel('Days Since (To) the Rebal Day')
+plt.xlim(-look_back, holding_period)
+plt.ylim(4000,14000)
 plt.show()
 fig.savefig('\\'.join(overleaf+['portfolio_backtest.png']))
 plt.close()
+
+print('Portfolio alpha:')
+a = pivot['car','portfolio'].iloc[-1]
+print(a)
+
+print('Portfolio risk:')
+s = pivot['car','portfolio'].std()
+print(s)
+
+print(a/s)

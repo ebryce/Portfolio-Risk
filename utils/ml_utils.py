@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt, numpy as np
 import itertools
 from sklearn.metrics import explained_variance_score, mean_squared_error, confusion_matrix, classification_report, accuracy_score
 
+overleaf = ['C:','Users','bryce','OneDrive','Documents','Overleaf','Thesis','assets','exports']
 
 def clf_model_eval(y_true, y_pred, classes=[0,1], cmap=plt.cm.Blues):
     '''
@@ -34,3 +35,5 @@ def clf_model_eval(y_true, y_pred, classes=[0,1], cmap=plt.cm.Blues):
     plt.ylabel('True')
     plt.xlabel('Predicted')
     plt.tight_layout()
+    fig.savefig('\\'.join(overleaf+['confusion_matrix.png']))
+    #plt.close()

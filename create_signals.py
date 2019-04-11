@@ -223,58 +223,101 @@ SEED=0xDEADBEEF
 
 y_col = 'add'
 X_cols = ['pct_contrib','turnover','VWAP','vol','VWMC','SPTSXComp']
+all_cols = X_cols + [y_col]
 X = filtered[X_cols]
 y = filtered[y_col]
 
 X_test, X_train, y_test, y_train  = sk.model_selection.train_test_split(X.values, y.values, test_size=0.2, random_state=SEED)
 
-sm = SMOTE(random_state=SEED)
-X_train_resample, y_train_resamle = sm.fit_resample(X_train, y_train)
+filtered[all_cols].to_sql('model_inputs', conn, if_exists='replace', index=False)
+
+#oversampler = SMOTE(random_state=SEED)
+oversampler = RandomOverSampler(random_state=SEED)
+
+X_train_resample, y_train_resamle = oversampler.fit_resample(X_train, y_train)
 
 print(len(X_train), len(X_test))
 
-log_clf = LogisticRegression()
+#log_clf = LogisticRegression()#
+#log_clf = RandomForestClassifier()
+#log_clf = xgb.XGBClassifier(max_depth=4, min_child_weight=50, learning_rate=0.01, n_estimators=50, gamma=1)
+log_clf = svm.LinearSVC()
+ ##LogisticRegression()
 log_clf.fit(X_train_resample, y_train_resamle)
 
 print(log_clf.score(X_train, y_train))
 
 y_pred = log_clf.predict(X_test)
-y_pred_prob = log_clf.predict_proba(X_test)
+try:
+	y_pred_prob = log_clf.predict_proba(X_test)
+except:
+	pass
 ml_utils.clf_model_eval(y_test, y_pred, classes=['n/c','Add'])
-plt.show()
-plt.close()
+#plt.show()
+#plt.close()
 
 from mpl_toolkits.mplot3d import Axes3D
-fig = plt.figure(figsize=(5,5))
+#fig = plt.figure(figsize=(5,5))
+#
+#if len(X_cols)>1:
+#	ax = fig.add_subplot(111, projection='3d')
+#	ax.scatter(X.values[:,0],X.values[:,1],y.values)
+#	ax.set_zlabel(y_col)
+#else:
+#	ax = fig.add_subplot(111)
+#
+#	ax.spines['left'].set_visible(True)
+#	ax.spines['top'].set_visible(False)
+#	ax.spines['right'].set_visible(False)
+#	ax.spines['bottom'].set_visible(True)
+#	ax.grid(True,axis='both',linestyle=':')
+#
+#	ax.scatter(X.values, y.values)
+#	ax.set_xlabel(X_cols[0])
+#	ax.set_ylabel(y_col)
+#plt.show()
+#fig.savefig('\\'.join(overleaf+['scatterplot.png']))
+#plt.close()
 
-if len(X_cols)>1:
-	ax = fig.add_subplot(111, projection='3d')
-	ax.scatter(X.values[:,0],X.values[:,1],y.values)
-	ax.set_zlabel(y_col)
-else:
-	ax = fig.add_subplot(111)
+from sklearn.metrics import roc_curve, auc
+import sklearn.metrics as metrics
 
+try:
+	fpr, tpr, threshold = metrics.roc_curve(y_test, y_pred_prob[:,1])
+	roc_auc = metrics.auc(fpr, tpr)
+
+	# Plot the ROC curve
+	fig = plt.figure(figsize=(5,5))
+	fig.patch.set_facecolor('white')
+	ax = fig.add_subplot(1, 1, 1)
 	ax.spines['left'].set_visible(True)
 	ax.spines['top'].set_visible(False)
 	ax.spines['right'].set_visible(False)
 	ax.spines['bottom'].set_visible(True)
 	ax.grid(True,axis='both',linestyle=':')
 
-	ax.scatter(X.values, y.values)
-	ax.set_xlabel(X_cols[0])
-	ax.set_ylabel(y_col)
-plt.show()
-fig.savefig('\\'.join(overleaf+['confusion_matrix.png']))
-plt.close()
+	ax.plot(fpr, tpr, label='ROC (A=%0.2f)' % roc_auc)
+	plt.legend(frameon=False, loc='best')
 
-#from sklearn.metrics import roc_curve, auc
-import sklearn.metrics as metrics
+	plt.title('ROC Curve for the Signal Generator')
+	plt.ylabel('False Positive Rate')
+	plt.xlabel('False Negative Rate')
+	plt.xlim(0,1)
+	plt.ylim(0,1)
+	plt.show()
+	fig.savefig('\\'.join(overleaf+['roc_curve.png']))
+	plt.close()
+except:
+	pass
 
-fpr, tpr, threshold = metrics.roc_curve(y_test, y_pred_prob[:,1])
-roc_auc = metrics.auc(fpr, tpr)
+# PLOT sample sizes
+font = {'family' : 'Arial',
+        'weight' : 'normal',
+        'size'   : 12}
 
-# Plot the ROC curve
-fig = plt.figure(figsize=(5,5))
+plt.rc('font', **font)
+
+fig = plt.figure(figsize=(6,6))
 fig.patch.set_facecolor('white')
 ax = fig.add_subplot(1, 1, 1)
 ax.spines['left'].set_visible(True)
@@ -283,23 +326,47 @@ ax.spines['right'].set_visible(False)
 ax.spines['bottom'].set_visible(True)
 ax.grid(True,axis='both',linestyle=':')
 
-ax.plot(fpr, tpr, label='ROC (A=%0.2f)' % roc_auc)
-plt.legend(frameon=False, loc='best')
-
-plt.title('ROC Curve for the Signal Generator')
-plt.ylabel('False Positive Rate')
-plt.xlabel('False Negative Rate')
-plt.xlim(0,1)
-plt.ylim(0,1)
+ax.hist(X_train[:,0][y_train], density=False, bins=np.linspace(0,0.02,10), alpha=0.7, histtype='stepfilled', label='Add', color=['xkcd:navy blue'])
+ax.hist(X_train[:,0][~y_train], density=False, bins=np.linspace(0,0.02,10), alpha=0.4, histtype='stepfilled', label='n/c', color=['xkcd:forest green'])
+#plt.hist(y_train)
+plt.title('Distribution of market caps (natural)')
+plt.ylabel('Frequency')
+plt.xlabel('% of total market cap')
+plt.legend(frameon=False, loc='top right')
+plt.xticks(np.linspace(0,0.02,5), np.linspace(0,2,5))
+fig.savefig('\\'.join(overleaf+['distribution_natural.png']))
 plt.show()
-fig.savefig('\\'.join(overleaf+['roc_curve.png']))
-plt.close()
+
+fig = plt.figure(figsize=(6,6))
+fig.patch.set_facecolor('white')
+ax = fig.add_subplot(1, 1, 1)
+ax.spines['left'].set_visible(True)
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['bottom'].set_visible(True)
+ax.grid(True,axis='both',linestyle=':')
+
+ax.hist(X_train_resample[:,0][y_train_resamle], density=False, bins=np.linspace(0,0.02,10), alpha=0.7, histtype='stepfilled', label='Add', color=['xkcd:navy blue'])
+ax.hist(X_train_resample[:,0][~y_train_resamle], density=False, bins=np.linspace(0,0.02,10), alpha=0.5, histtype='stepfilled', label='n/c', color=['xkcd:forest green'])
+#plt.hist(y_train)
+plt.title('Distribution of market caps (over-sampled)')
+plt.ylabel('Frequency')
+plt.xlabel('% of total market cap')
+plt.legend(frameon=False, loc='top right')
+plt.xticks(np.linspace(0,0.02,5), np.linspace(0,2,5))
+fig.savefig('\\'.join(overleaf+['distribution_oversample.png']))
+plt.show()
+
 
 # CONSTRUCT A PORTFOLIO
 
 signals = filtered.copy(deep=True)
-signals['prediction'] = log_clf.predict(X)
-signals['probability'] = log_clf.predict_proba(X)[:,1]
+try:
+	signals['probability'] = log_clf.predict_proba(X.values)[:,1]
+except:
+	print('Using flat probability distn')
+	signals['probability'] = 1
+signals['prediction'] = log_clf.predict(X.values)
 
 signals = signals.loc[signals['prediction']]
 
@@ -307,5 +374,34 @@ signals['trade_date'] = signals['month'].apply(lambda month: (datetime.strptime(
 signals = signals[['ticker','trade_date','probability']]
 
 signals.to_sql('signals', conn, if_exists='replace', index=False)
+
+
+
+
+#importances = log_clf.feature_importances_
+#std = np.std([tree.feature_importances_ for tree in log_clf.estimators_],
+#             axis=0)
+#indices = np.argsort(importances)[::-1]
+#
+## PFeature rankings
+#print("Feature ranking:")
+#for f in range(X_train.shape[1]):
+#    print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
+#
+## Plot the feature importances of the forest
+#fig = plt.figure(figsize=(6,6))
+#plt.title("Feature importances")
+#plt.bar(range(X_train.shape[1]), importances[indices], yerr=std[indices], align="center")
+#plt.xticks(range(X_train.shape[1]), indices)
+#plt.xlim([-1, X_train.shape[1]])
+#plt.show()
+#fig.savefig('\\'.join(overleaf+['importances.png']))
+
+
+
+
+
+
+
 
 import backtest
