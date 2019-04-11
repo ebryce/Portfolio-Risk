@@ -1,4 +1,4 @@
-Rebal Costs
+A Long/Short Index Rebalance Portfolio
 ==============
 
-The Jupyter notebook should be self-explanatory.
+I identify a factor-based methodology for testing whether abnormal returns exist during index rebalances. Using that approach, I find that normal returns do exist around rebalance events, although those abnormal returns may not truly be statistically significant. In light of those abnormal returns, I identify an approach to trading rebalances by predicting which securities out of the entire TSX universe are most likely to be added to the S&P/TSX Composite Index in the next month. Trade signals were identified by training a logistic binary classifier on the same factors which the index committee uses to determine eligibility for inclusion. The low likelihood of any random security being added to an index was mitigated through random over-sampling. Finally, I used these signals to construct a hypothetical portfolio which performed well in back-testing.
