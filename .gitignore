@@ -1,3 +1,8 @@
 ciq/
 bbg/
 archive/
+.ipynb_checkpoints/
+__pycache__/
+errlog.txt
+Print-Tables.ipynb
+ClusterExperiment.ipynb
